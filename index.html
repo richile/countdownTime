@@ -16,12 +16,13 @@
     }
     .container {
       flex: 1;
-      max-width: 400px;
-      margin: 40px auto 0 auto;
+      width: 100vw;
+      max-width: 100vw;
+      margin: 0;
       background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      padding: 24px 20px 80px 20px;
+      border-radius: 0;
+      box-shadow: none;
+      padding: 24px 0 100px 0;
       box-sizing: border-box;
     }
     h1 {
@@ -91,13 +92,15 @@
     }
     @media (max-width: 500px) {
       .container {
-        max-width: 98vw;
-        padding: 12px 4vw 80px 4vw;
+        width: 100vw;
+        max-width: 100vw;
+        padding: 12px 0 100px 0;
       }
       .countdown-inner {
-        max-width: 98vw;
+        width: 100vw;
+        max-width: 100vw;
         font-size: 1.3rem;
-        padding: 0 2vw;
+        padding: 0;
       }
     }
     .countdown {
@@ -119,11 +122,11 @@
       width: 100vw;
     }
     .countdown-inner {
-      width: 33vw;
-      min-width: 180px;
-      max-width: 400px;
+      width: 100vw;
+      min-width: 0;
+      max-width: 100vw;
       margin: 0 auto;
-      border-radius: 8px;
+      border-radius: 0;
       background: #222;
     }
     @media (max-width: 500px) {
@@ -146,12 +149,6 @@
     <form id="timerForm">
       <div class="inputs" id="durationInputs">
         <div id="quickBtns" style="display: flex; flex-wrap: wrap; gap: 10px 10px;"></div>
-        <div id="customInputArea" style="display:none; margin-top: 10px;">
-          <label>小時：<input type="number" id="customHour" min="0" max="24" value="0" style="width:60px;"></label>
-          <label>分鐘：<input type="number" id="customMinute" min="0" max="59" value="0" style="width:60px;"></label>
-          <label>秒：<input type="number" id="customSecond" min="0" max="59" value="0" style="width:60px;"></label>
-          <button type="button" id="addQuickBtn" style="margin-left:10px;">新增快捷</button>
-        </div>
       </div>
       <div class="inputs" id="targetInputs" style="display:none;">
         <label for="targetTime">指定時間（24小時制）：</label>
@@ -183,7 +180,8 @@
           const now = new Date();
           const pad = n => String(n).padStart(2, '0');
           const nowTime = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-          document.getElementById('targetTime').value = nowTime;
+          const timeInput = document.getElementById('targetTime');
+          timeInput.value = nowTime;
         }
         countdownInner.textContent = '請選擇模式並設定時間';
         clearInterval(timer);
@@ -200,40 +198,17 @@
     }
 
     // 動態產生下拉選單選項
-    function fillSelectOptions(id, max) {
-      const sel = document.getElementById(id);
-      sel.innerHTML = '';
-      for (let i = 0; i <= max; i++) {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = i.toString().padStart(2, '0');
-        sel.appendChild(opt);
-      }
-    }
-    fillSelectOptions('hours', 24);
-    fillSelectOptions('minutes', 59);
-    fillSelectOptions('seconds', 59);
-
     // 快捷鍵功能
-    const defaultQuicks = [
-      {label: '3分鐘', h:0, m:3, s:0},
-      {label: '5分鐘', h:0, m:5, s:0},
-      {label: '10分鐘', h:0, m:10, s:0}
-    ];
-    function getSavedQuicks() {
-      try {
-        return JSON.parse(localStorage.getItem('customQuicks')||'[]');
-      } catch { return []; }
-    }
-    function saveQuicks(list) {
-      localStorage.setItem('customQuicks', JSON.stringify(list));
-    }
+    // 只顯示預設三個快捷
     function renderQuickBtns() {
       const quickBtns = document.getElementById('quickBtns');
       quickBtns.innerHTML = '';
-      const customs = getSavedQuicks();
-      const all = [...defaultQuicks, ...customs];
-      all.forEach((q, idx) => {
+      const quickList = [
+        {label: '3分鐘', h:0, m:3, s:0},
+        {label: '5分鐘', h:0, m:5, s:0},
+        {label: '10分鐘', h:0, m:10, s:0}
+      ];
+      quickList.forEach(q => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.textContent = q.label;
@@ -242,31 +217,7 @@
           startQuickCountdown(q.h, q.m, q.s);
         };
         quickBtns.appendChild(btn);
-        // 刪除自訂快捷
-        if(idx >= defaultQuicks.length) {
-          const del = document.createElement('span');
-          del.textContent = '✕';
-          del.title = '刪除';
-          del.style = 'margin-left:4px; color:#c00; cursor:pointer; font-size:1.1em;';
-          del.onclick = (e) => {
-            e.stopPropagation();
-            const customs = getSavedQuicks();
-            customs.splice(idx-defaultQuicks.length,1);
-            saveQuicks(customs);
-            renderQuickBtns();
-          };
-          btn.appendChild(del);
-        }
       });
-      // 自訂按鈕
-      const customBtn = document.createElement('button');
-      customBtn.type = 'button';
-      customBtn.textContent = '自訂';
-      customBtn.style = 'padding:8px 18px; border-radius:6px; border:1px solid #0078d7; background:#eaf4ff; color:#0078d7; font-size:1rem; margin-left:10px;';
-      customBtn.onclick = () => {
-        document.getElementById('customInputArea').style.display = '';
-      };
-      quickBtns.appendChild(customBtn);
     }
     function startQuickCountdown(h, m, s) {
       clearInterval(timer);
@@ -285,22 +236,7 @@
         }
       }, 1000);
     }
-    // 新增自訂快捷
-    document.addEventListener('DOMContentLoaded',()=>{
-      renderQuickBtns();
-      document.getElementById('addQuickBtn').onclick = function() {
-        const h = parseInt(document.getElementById('customHour').value,10)||0;
-        const m = parseInt(document.getElementById('customMinute').value,10)||0;
-        const s = parseInt(document.getElementById('customSecond').value,10)||0;
-        if(h===0&&m===0&&s===0) return alert('請輸入有效時間');
-        const label = `${h>0?h+'小時':''}${m>0?m+'分鐘':''}${s>0?s+'秒':''}`||'自訂';
-        const customs = getSavedQuicks();
-        customs.push({label,h,m,s});
-        saveQuicks(customs);
-        renderQuickBtns();
-        document.getElementById('customInputArea').style.display = 'none';
-      };
-    });
+    document.addEventListener('DOMContentLoaded', renderQuickBtns);
 
     // 開始倒數
     timerForm.addEventListener('submit', function(e) {
@@ -309,7 +245,6 @@
       let totalSeconds = 0;
       const mode = document.querySelector('input[name="mode"]:checked').value;
       if (mode === 'duration') {
-        // 不做事，快捷鍵直接觸發
         countdownInner.textContent = '請點選上方快捷鍵';
         return;
       } else {
