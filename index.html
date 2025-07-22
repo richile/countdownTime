@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>倒數計時器</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .container {
+      flex: 1;
+      max-width: 400px;
+      margin: 40px auto 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 24px 20px 80px 20px;
+      box-sizing: border-box;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .mode-select {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .mode-select label {
+      flex: 1 1 0;
+      min-width: 0;
+      max-width: 180px;
+      text-align: center;
+      background: #f0f4fa;
+      border-radius: 6px;
+      padding: 10px 0;
+      box-sizing: border-box;
+      cursor: pointer;
+      border: 1px solid #d0d7e2;
+      transition: background 0.2s, border 0.2s;
+      user-select: none;
+      font-size: 1.08rem;
+    }
+    .mode-select input[type="radio"] {
+      margin-right: 8px;
+    }
+    .mode-select label:active, .mode-select label:hover {
+      background: #e0e7f3;
+      border-color: #a0b3d6;
+    }
+    .inputs {
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    label {
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+    input[type="number"], input[type="time"] {
+      width: 100%;
+      padding: 8px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 1.1rem;
+      background: #0078d7;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+    @media (max-width: 500px) {
+      .container {
+        max-width: 98vw;
+        padding: 12px 4vw 80px 4vw;
+      }
+      .countdown-inner {
+        max-width: 98vw;
+        font-size: 1.3rem;
+        padding: 0 2vw;
+      }
+    }
+    .countdown {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #222;
+      color: #fff;
+      text-align: center;
+      font-size: 2rem;
+      padding: 18px 0 18px 0;
+      letter-spacing: 2px;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-sizing: border-box;
+      width: 100vw;
+    }
+    .countdown-inner {
+      width: 33vw;
+      min-width: 180px;
+      max-width: 400px;
+      margin: 0 auto;
+      border-radius: 8px;
+      background: #222;
+    }
+    @media (max-width: 500px) {
+      .countdown-inner {
+        width: 98vw;
+        max-width: 98vw;
+        font-size: 1.3rem;
+        padding: 0 2vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>倒數計時器</h1>
+    <div class="mode-select">
+      <label><input type="radio" name="mode" value="duration" checked> 自訂時分秒</label>
+      <label><input type="radio" name="mode" value="target"> 指定時間</label>
+    </div>
+    <form id="timerForm">
+      <div class="inputs" id="durationInputs">
+        <div id="quickBtns" style="display: flex; flex-wrap: wrap; gap: 10px 10px;"></div>
+        <div id="customInputArea" style="display:none; margin-top: 10px;">
+          <label>小時：<input type="number" id="customHour" min="0" max="24" value="0" style="width:60px;"></label>
+          <label>分鐘：<input type="number" id="customMinute" min="0" max="59" value="0" style="width:60px;"></label>
+          <label>秒：<input type="number" id="customSecond" min="0" max="59" value="0" style="width:60px;"></label>
+          <button type="button" id="addQuickBtn" style="margin-left:10px;">新增快捷</button>
+        </div>
+      </div>
+      <div class="inputs" id="targetInputs" style="display:none;">
+        <label for="targetTime">指定時間（24小時制）：</label>
+        <input type="time" id="targetTime" step="1">
+      </div>
+      <button type="submit">開始倒數</button>
+    </form>
+    <div class="countdown" id="countdownDisplay"><span class="countdown-inner">請選擇模式並設定時間</span></div>
+  </div>
+  <script>
+    const modeRadios = document.querySelectorAll('input[name="mode"]');
+    const durationInputs = document.getElementById('durationInputs');
+    const targetInputs = document.getElementById('targetInputs');
+    const timerForm = document.getElementById('timerForm');
+    const countdownDisplay = document.getElementById('countdownDisplay');
+    const countdownInner = countdownDisplay.querySelector('.countdown-inner');
+    let timer = null;
+
+    // 切換模式
+    modeRadios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        if (radio.value === 'duration') {
+          durationInputs.style.display = '';
+          targetInputs.style.display = 'none';
+        } else {
+          durationInputs.style.display = 'none';
+          targetInputs.style.display = '';
+          // 設定 input[type="time"] 為當下時間
+          const now = new Date();
+          const pad = n => String(n).padStart(2, '0');
+          const nowTime = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+          document.getElementById('targetTime').value = nowTime;
+        }
+        countdownInner.textContent = '請選擇模式並設定時間';
+        clearInterval(timer);
+      });
+    });
+
+    // 格式化時間
+    function formatTime(sec) {
+      if (sec < 0) sec = 0;
+      const h = String(Math.floor(sec / 3600)).padStart(2, '0');
+      const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+      const s = String(sec % 60).padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    }
+
+    // 動態產生下拉選單選項
+    function fillSelectOptions(id, max) {
+      const sel = document.getElementById(id);
+      sel.innerHTML = '';
+      for (let i = 0; i <= max; i++) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = i.toString().padStart(2, '0');
+        sel.appendChild(opt);
+      }
+    }
+    fillSelectOptions('hours', 24);
+    fillSelectOptions('minutes', 59);
+    fillSelectOptions('seconds', 59);
+
+    // 快捷鍵功能
+    const defaultQuicks = [
+      {label: '3分鐘', h:0, m:3, s:0},
+      {label: '5分鐘', h:0, m:5, s:0},
+      {label: '10分鐘', h:0, m:10, s:0}
+    ];
+    function getSavedQuicks() {
+      try {
+        return JSON.parse(localStorage.getItem('customQuicks')||'[]');
+      } catch { return []; }
+    }
+    function saveQuicks(list) {
+      localStorage.setItem('customQuicks', JSON.stringify(list));
+    }
+    function renderQuickBtns() {
+      const quickBtns = document.getElementById('quickBtns');
+      quickBtns.innerHTML = '';
+      const customs = getSavedQuicks();
+      const all = [...defaultQuicks, ...customs];
+      all.forEach((q, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = q.label;
+        btn.style = 'padding:8px 18px; border-radius:6px; border:1px solid #bbb; background:#f7f7f7; cursor:pointer; font-size:1rem;';
+        btn.onclick = () => {
+          startQuickCountdown(q.h, q.m, q.s);
+        };
+        quickBtns.appendChild(btn);
+        // 刪除自訂快捷
+        if(idx >= defaultQuicks.length) {
+          const del = document.createElement('span');
+          del.textContent = '✕';
+          del.title = '刪除';
+          del.style = 'margin-left:4px; color:#c00; cursor:pointer; font-size:1.1em;';
+          del.onclick = (e) => {
+            e.stopPropagation();
+            const customs = getSavedQuicks();
+            customs.splice(idx-defaultQuicks.length,1);
+            saveQuicks(customs);
+            renderQuickBtns();
+          };
+          btn.appendChild(del);
+        }
+      });
+      // 自訂按鈕
+      const customBtn = document.createElement('button');
+      customBtn.type = 'button';
+      customBtn.textContent = '自訂';
+      customBtn.style = 'padding:8px 18px; border-radius:6px; border:1px solid #0078d7; background:#eaf4ff; color:#0078d7; font-size:1rem; margin-left:10px;';
+      customBtn.onclick = () => {
+        document.getElementById('customInputArea').style.display = '';
+      };
+      quickBtns.appendChild(customBtn);
+    }
+    function startQuickCountdown(h, m, s) {
+      clearInterval(timer);
+      let totalSeconds = h*3600 + m*60 + s;
+      if(totalSeconds<=0) {
+        countdownInner.textContent = '請輸入有效的倒數時間';
+        return;
+      }
+      countdownInner.textContent = formatTime(totalSeconds);
+      timer = setInterval(() => {
+        totalSeconds--;
+        countdownInner.textContent = formatTime(totalSeconds);
+        if (totalSeconds <= 0) {
+          clearInterval(timer);
+          countdownInner.textContent = '時間到！';
+        }
+      }, 1000);
+    }
+    // 新增自訂快捷
+    document.addEventListener('DOMContentLoaded',()=>{
+      renderQuickBtns();
+      document.getElementById('addQuickBtn').onclick = function() {
+        const h = parseInt(document.getElementById('customHour').value,10)||0;
+        const m = parseInt(document.getElementById('customMinute').value,10)||0;
+        const s = parseInt(document.getElementById('customSecond').value,10)||0;
+        if(h===0&&m===0&&s===0) return alert('請輸入有效時間');
+        const label = `${h>0?h+'小時':''}${m>0?m+'分鐘':''}${s>0?s+'秒':''}`||'自訂';
+        const customs = getSavedQuicks();
+        customs.push({label,h,m,s});
+        saveQuicks(customs);
+        renderQuickBtns();
+        document.getElementById('customInputArea').style.display = 'none';
+      };
+    });
+
+    // 開始倒數
+    timerForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      clearInterval(timer);
+      let totalSeconds = 0;
+      const mode = document.querySelector('input[name="mode"]:checked').value;
+      if (mode === 'duration') {
+        // 不做事，快捷鍵直接觸發
+        countdownInner.textContent = '請點選上方快捷鍵';
+        return;
+      } else {
+        const now = new Date();
+        const [th, tm, ts] = document.getElementById('targetTime').value.split(':').map(Number);
+        const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), th, tm, ts);
+        if (target < now) {
+          // 如果指定時間已過，則設為明天
+          target.setDate(target.getDate() + 1);
+        }
+        totalSeconds = Math.floor((target - now) / 1000);
+      }
+      if (totalSeconds <= 0) {
+        countdownInner.textContent = '請輸入有效的倒數時間';
+        return;
+      }
+      countdownInner.textContent = formatTime(totalSeconds);
+      timer = setInterval(() => {
+        totalSeconds--;
+        countdownInner.textContent = formatTime(totalSeconds);
+        if (totalSeconds <= 0) {
+          clearInterval(timer);
+          countdownInner.textContent = '時間到！';
+        }
+      }, 1000);
+    });
+  </script>
+</body>
+</html> 
